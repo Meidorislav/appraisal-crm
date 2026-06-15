@@ -183,7 +183,7 @@ The technology stack is fixed:
 
 - All data (requests, inspection photos, appraisal reports) is retained for **5 years**.
 - The company must provide a server for deployment and cover S3 Yandex Cloud costs (to be estimated based on 5-year retention volume).
-- All source code will remain open-source under the **MIT** or **Apache 2.0** license.
+- All source code will remain open-source under the **Apache 2.0** license.
 
 ---
 
