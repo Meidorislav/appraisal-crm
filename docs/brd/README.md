@@ -103,7 +103,6 @@ The appraiser receives the property data, manually searches for comparable prope
 - Description of the business process "Client interview during request formation"
 - Description of the business process "Property appraisal"
 - How is property data currently stored?
-- How long is appraisal data retained within the company?
 
 ### Key AS-IS Pain Points
 
@@ -182,7 +181,8 @@ The technology stack is fixed:
 | Frontend | TypeScript, React |
 | File Storage | S3 Yandex Cloud |
 
-- The company must provide a server for deployment and cover S3 Yandex Cloud costs (pricing to be agreed after the data storage policy is defined).
+- All data (requests, inspection photos, appraisal reports) is retained for **5 years**.
+- The company must provide a server for deployment and cover S3 Yandex Cloud costs (to be estimated based on 5-year retention volume).
 - All source code will remain open-source under the **MIT** or **Apache 2.0** license.
 
 ---
@@ -195,7 +195,7 @@ The technology stack is fixed:
 | R-002 | Clients do not adopt the web interface | Medium | High | Simple onboarding, email notifications with a link to the personal account |
 | R-003 | Inspector cannot conveniently upload photos from a phone | Medium | Medium | Responsive interface, mandatory testing on mobile devices |
 | R-004 | Employees resist changing their established workflow | Medium | High | Involve employees in interface review during the Figma design phase |
-| R-005 | Unpredictable volume of stored photographs | Low | Medium | Define a data retention policy and set upload limits before deployment |
+| R-005 | High S3 storage costs due to photo volume over 5 years | Low | Medium | Estimate storage volume before deployment and set per-request upload limits |
 
 ---
 
