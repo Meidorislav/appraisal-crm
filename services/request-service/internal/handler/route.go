@@ -27,14 +27,13 @@ func NewRouter(svc service.RequestService, jwks keyfunc.Keyfunc) *chi.Mux {
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.Auth(jwks))
 
-		r.Route("/requests", func(r chi.Router) {
-			rh := newRequestHandler(svc)
-			r.Post("/", rh.Create)
-			r.Get("/{id}", rh.GetByID)
-			r.Patch("/{id}", rh.Update)
-			r.Patch("/{id}/status", rh.ChangeStatus)
-			r.Get("/", rh.ListByClientID)
-		})
+		rh := newRequestHandler(svc)
+
+		r.With(middleware.RequireRoles("client")).Post("/requests", rh.Create)
+		r.With(middleware.RequireRoles("client", "appraiser", "admin")).Get("/requests", rh.ListByClientID)
+		r.With(middleware.RequireRoles("client", "appraiser", "admin")).Get("/requests/{id}", rh.GetByID)
+		r.With(middleware.RequireRoles("appraiser", "admin")).Patch("/requests/{id}", rh.Update)
+		r.With(middleware.RequireRoles("appraiser")).Patch("/requests/{id}/status", rh.ChangeStatus)
 	})
 
 	return r

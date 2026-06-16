@@ -64,3 +64,26 @@ func RolesFromContext(ctx context.Context) []string {
 	roles, _ := ctx.Value(contextKeyRoles).([]string)
 	return roles
 }
+
+func HasRole(ctx context.Context, role string) bool {
+	for _, r := range RolesFromContext(ctx) {
+		if r == role {
+			return true
+		}
+	}
+	return false
+}
+
+func RequireRoles(roles ...string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			for _, role := range roles {
+				if HasRole(r.Context(), role) {
+					next.ServeHTTP(w, r)
+					return
+				}
+			}
+			http.Error(w, "forbidden", http.StatusForbidden)
+		})
+	}
+}

@@ -79,6 +79,14 @@ func (h *requestHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if middleware.HasRole(r.Context(), "client") {
+		userID, _ := middleware.UserIDFromContext(r.Context())
+		if req.ClientID != userID {
+			http.Error(w, "forbidden", http.StatusForbidden)
+			return
+		}
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(req)
 }
@@ -183,6 +191,18 @@ func (h *requestHandler) ChangeStatus(w http.ResponseWriter, r *http.Request) {
 // @Failure     500 {string} string
 // @Router      /requests [get]
 func (h *requestHandler) ListByClientID(w http.ResponseWriter, r *http.Request) {
+	if middleware.HasRole(r.Context(), "client") {
+		userID, _ := middleware.UserIDFromContext(r.Context())
+		requests, err := h.svc.ListByClientID(r.Context(), userID)
+		if err != nil {
+			http.Error(w, "failed to list requests", http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(requests)
+		return
+	}
+
 	clientID, err := uuid.Parse(r.URL.Query().Get("client_id"))
 	if err != nil {
 		http.Error(w, "missing or invalid client_id query param", http.StatusBadRequest)
