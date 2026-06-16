@@ -6,16 +6,16 @@ import (
 )
 
 type createRequestDTO struct {
-	ObjectType *domain.ObjectType `json:"object_type"`
-	Address    *string            `json:"address"`
+	ObjectType *domain.ObjectType `json:"object_type" validate:"omitempty,oneof=apartment house land commercial car"`
+	Address    *string            `json:"address"     validate:"omitempty,min=1"`
 }
 
 type updateRequestDTO struct {
 	InspectorID *uuid.UUID         `json:"inspector_id"`
-	ObjectType  *domain.ObjectType `json:"object_type"`
-	Address     *string            `json:"address"`
+	ObjectType  *domain.ObjectType `json:"object_type" validate:"omitempty,oneof=apartment house land commercial car"`
+	Address     *string            `json:"address"     validate:"omitempty,min=1"`
 }
 
 type changeStatusDTO struct {
-	Status domain.Status `json:"status"`
+	Status domain.Status `json:"status" validate:"required,oneof=new in_progress inspection_scheduled inspection_completed appraisal report_sent closed"`
 }

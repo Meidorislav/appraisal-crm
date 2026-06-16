@@ -6,6 +6,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	httpSwagger "github.com/swaggo/http-swagger"
+	"github.com/go-playground/validator/v10"
 )
 
 func NewRouter(svc service.RequestService) *chi.Mux {
@@ -19,11 +20,13 @@ func NewRouter(svc service.RequestService) *chi.Mux {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
+	v := validator.New()
+
 	r.Get("/health", Health)
 	r.Get("/swagger/*", httpSwagger.WrapHandler)
 
 	r.Route("/requests", func(r chi.Router) {
-		rh := newRequestHandler(svc)
+		rh := newRequestHandler(svc, v)
 		r.Post("/", rh.Create)
 		r.Get("/{id}", rh.GetByID)
 		r.Patch("/{id}", rh.Update)
