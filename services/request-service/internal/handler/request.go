@@ -7,15 +7,17 @@ import (
 
 	"github.com/Meidorislav/appraisal-crm/services/request-service/internal/service"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 )
 
 type requestHandler struct {
-	svc service.RequestService
+	svc      service.RequestService
+	validate *validator.Validate
 }
 
-func newRequestHandler(svc service.RequestService) *requestHandler {
-	return &requestHandler{svc: svc}
+func newRequestHandler(svc service.RequestService, v *validator.Validate) *requestHandler {
+	return &requestHandler{svc: svc, validate: v}
 }
 
 // Create godoc
@@ -39,6 +41,11 @@ func (h *requestHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var dto createRequestDTO
 	if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
 		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.validate.Struct(dto); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -104,6 +111,11 @@ func (h *requestHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := h.validate.Struct(dto); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	req, err := h.svc.GetByID(r.Context(), id)
 	if err != nil {
 		http.Error(w, "request not found", http.StatusNotFound)
@@ -146,6 +158,11 @@ func (h *requestHandler) ChangeStatus(w http.ResponseWriter, r *http.Request) {
 	var dto changeStatusDTO
 	if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
 		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.validate.Struct(dto); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
