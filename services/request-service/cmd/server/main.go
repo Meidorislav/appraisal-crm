@@ -13,8 +13,10 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
+	"os"
+	"strings"
 
 	"github.com/MicahParks/keyfunc/v3"
 	_ "github.com/Meidorislav/appraisal-crm/services/request-service/docs"
@@ -26,31 +28,41 @@ import (
 )
 
 func main() {
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	slog.SetDefault(logger)
+
 	cfg := config.Load()
 
 	db, err := pgxpool.New(context.Background(), cfg.DatabaseURL)
 	if err != nil {
-		log.Fatalf("failed to connect to database: %v", err)
+		slog.Error("failed to connect to database", "error", err)
+		os.Exit(1)
 	}
 	defer db.Close()
 
 	if err := db.Ping(context.Background()); err != nil {
-		log.Fatalf("database is not reachable: %v", err)
+		slog.Error("database is not reachable", "error", err)
+		os.Exit(1)
 	}
+	slog.Info("connected to database")
 
 	jwks, err := keyfunc.NewDefault([]string{cfg.JWKSUrl})
 	if err != nil {
-		log.Fatalf("failed to initialize JWKS: %v", err)
+		slog.Error("failed to initialize JWKS", "error", err)
+		os.Exit(1)
 	}
+	slog.Info("JWKS initialized", "url", cfg.JWKSUrl)
 
 	repo := repository.NewPostgresRepository(db)
 	svc := service.NewRequestService(repo)
-	router := handler.NewRouter(svc, jwks)
+	allowedOrigins := strings.Split(cfg.AllowedOrigins, ",")
+	router := handler.NewRouter(svc, jwks, allowedOrigins)
 
 	addr := fmt.Sprintf(":%s", cfg.ServerPort)
-	log.Printf("starting server on %s", addr)
+	slog.Info("starting server", "addr", addr)
 
 	if err := http.ListenAndServe(addr, router); err != nil {
-		log.Fatalf("server error: %v", err)
+		slog.Error("server error", "error", err)
+		os.Exit(1)
 	}
 }
