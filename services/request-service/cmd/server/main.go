@@ -3,6 +3,10 @@
 // @description     API for managing appraisal requests
 // @host            localhost:8080
 // @BasePath        /
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Type "Bearer" followed by a space and your token
 
 package main
 
