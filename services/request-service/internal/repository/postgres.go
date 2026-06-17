@@ -2,10 +2,12 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/Meidorislav/appraisal-crm/services/request-service/internal/domain"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -55,6 +57,9 @@ func (r *postgresRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain
 		&req.UpdatedAt,
 	)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
 		return nil, err
 	}
 	return &req, nil
@@ -67,7 +72,7 @@ func (r *postgresRepository) Update(ctx context.Context, req *domain.Request) er
 		WHERE id = $6
 	`
 	req.UpdatedAt = time.Now()
-	_, err := r.db.Exec(ctx, query,
+	tag, err := r.db.Exec(ctx, query,
 		req.InspectorID,
 		req.ObjectType,
 		req.Address,
@@ -75,7 +80,13 @@ func (r *postgresRepository) Update(ctx context.Context, req *domain.Request) er
 		req.UpdatedAt,
 		req.ID,
 	)
-	return err
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
 }
 
 func (r *postgresRepository) ListByClientID(ctx context.Context, clientID uuid.UUID) ([]*domain.Request, error) {

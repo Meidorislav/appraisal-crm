@@ -78,7 +78,11 @@ func (h *requestHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 
 	req, err := h.svc.GetByID(r.Context(), id)
 	if err != nil {
-		respondError(w, http.StatusNotFound, "request not found")
+		if errors.Is(err, service.ErrNotFound) {
+			respondError(w, http.StatusNotFound, "request not found")
+			return
+		}
+		respondError(w, http.StatusInternalServerError, "failed to get request")
 		return
 	}
 
@@ -126,7 +130,11 @@ func (h *requestHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	req, err := h.svc.GetByID(r.Context(), id)
 	if err != nil {
-		respondError(w, http.StatusNotFound, "request not found")
+		if errors.Is(err, service.ErrNotFound) {
+			respondError(w, http.StatusNotFound, "request not found")
+			return
+		}
+		respondError(w, http.StatusInternalServerError, "failed to get request")
 		return
 	}
 
@@ -142,6 +150,10 @@ func (h *requestHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	updated, err := h.svc.Update(r.Context(), req)
 	if err != nil {
+		if errors.Is(err, service.ErrNotFound) {
+			respondError(w, http.StatusNotFound, "request not found")
+			return
+		}
 		respondError(w, http.StatusInternalServerError, "failed to update request")
 		return
 	}
@@ -182,6 +194,10 @@ func (h *requestHandler) ChangeStatus(w http.ResponseWriter, r *http.Request) {
 
 	req, err := h.svc.ChangeStatus(r.Context(), id, dto.Status)
 	if err != nil {
+		if errors.Is(err, service.ErrNotFound) {
+			respondError(w, http.StatusNotFound, "request not found")
+			return
+		}
 		if errors.Is(err, service.ErrInvalidStatusTransition) {
 			respondError(w, http.StatusUnprocessableEntity, "invalid status transition")
 			return
