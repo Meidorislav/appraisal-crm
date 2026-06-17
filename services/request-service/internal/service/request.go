@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 )
 
+var ErrNotFound = errors.New("not found")
 var ErrInvalidStatusTransition = errors.New("invalid status transition")
 
 var allowedTransitions = map[domain.Status]domain.Status{
@@ -50,12 +51,19 @@ func (s *requestService) Create(ctx context.Context, clientID uuid.UUID, objectT
 }
 
 func (s *requestService) GetByID(ctx context.Context, id uuid.UUID) (*domain.Request, error) {
-	return s.repo.GetByID(ctx, id)
+	req, err := s.repo.GetByID(ctx, id)
+	if errors.Is(err, repository.ErrNotFound) {
+		return nil, ErrNotFound
+	}
+	return req, err
 }
 
 func (s *requestService) Update(ctx context.Context, req *domain.Request) (*domain.Request, error) {
 	req.UpdatedAt = time.Now()
 	if err := s.repo.Update(ctx, req); err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			return nil, ErrNotFound
+		}
 		slog.ErrorContext(ctx, "failed to update request", "error", err, "request_id", req.ID)
 		return nil, err
 	}
@@ -66,6 +74,9 @@ func (s *requestService) Update(ctx context.Context, req *domain.Request) (*doma
 func (s *requestService) ChangeStatus(ctx context.Context, id uuid.UUID, newStatus domain.Status) (*domain.Request, error) {
 	req, err := s.repo.GetByID(ctx, id)
 	if err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			return nil, ErrNotFound
+		}
 		return nil, err
 	}
 

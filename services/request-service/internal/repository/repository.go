@@ -2,10 +2,13 @@ package repository
 
 import (
 	"context"
+	"errors"
 
 	"github.com/Meidorislav/appraisal-crm/services/request-service/internal/domain"
 	"github.com/google/uuid"
 )
+
+var ErrNotFound = errors.New("not found")
 
 type RequestRepository interface {
 	Create(ctx context.Context, req *domain.Request) error
