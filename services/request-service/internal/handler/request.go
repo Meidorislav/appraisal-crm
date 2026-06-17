@@ -43,6 +43,10 @@ func (h *requestHandler) Create(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
+	if err := validate.Struct(dto); err != nil {
+		respondError(w, http.StatusBadRequest, firstValidationError(err))
+		return
+	}
 
 	req, err := h.svc.Create(r.Context(), clientID, dto.ObjectType, dto.Address)
 	if err != nil {
@@ -115,6 +119,10 @@ func (h *requestHandler) Update(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
+	if err := validate.Struct(dto); err != nil {
+		respondError(w, http.StatusBadRequest, firstValidationError(err))
+		return
+	}
 
 	req, err := h.svc.GetByID(r.Context(), id)
 	if err != nil {
@@ -122,9 +130,15 @@ func (h *requestHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req.InspectorID = dto.InspectorID
-	req.ObjectType = dto.ObjectType
-	req.Address = dto.Address
+	if dto.InspectorID != nil {
+		req.InspectorID = dto.InspectorID
+	}
+	if dto.ObjectType != nil {
+		req.ObjectType = dto.ObjectType
+	}
+	if dto.Address != nil {
+		req.Address = dto.Address
+	}
 
 	updated, err := h.svc.Update(r.Context(), req)
 	if err != nil {
@@ -159,6 +173,10 @@ func (h *requestHandler) ChangeStatus(w http.ResponseWriter, r *http.Request) {
 	var dto changeStatusDTO
 	if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
 		respondError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if err := validate.Struct(dto); err != nil {
+		respondError(w, http.StatusBadRequest, firstValidationError(err))
 		return
 	}
 
