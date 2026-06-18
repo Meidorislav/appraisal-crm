@@ -32,22 +32,24 @@ func NewRequestService(repo repository.RequestRepository) RequestService {
 	return &requestService{repo: repo}
 }
 
-func (s *requestService) Create(ctx context.Context, clientID uuid.UUID, objectType *domain.ObjectType, address *string) (*domain.Request, error) {
+func (s *requestService) Create(ctx context.Context, in CreateInput) (*domain.Request, error) {
 	now := time.Now()
 	req := &domain.Request{
-		ID:         uuid.New(),
-		ClientID:   clientID,
-		ObjectType: objectType,
-		Address:    address,
-		Status:     domain.StatusNew,
-		CreatedAt:  now,
-		UpdatedAt:  now,
+		ID:          uuid.New(),
+		ClientID:    in.ClientID,
+		Email:       in.Email,
+		PhoneNumber: in.PhoneNumber,
+		ObjectType:  in.ObjectType,
+		Address:     in.Address,
+		Status:      domain.StatusNew,
+		CreatedAt:   now,
+		UpdatedAt:   now,
 	}
 	if err := s.repo.Create(ctx, req); err != nil {
-		slog.ErrorContext(ctx, "failed to create request", "error", err, "client_id", clientID)
+		slog.ErrorContext(ctx, "failed to create request", "error", err, "client_id", in.ClientID)
 		return nil, err
 	}
-	slog.InfoContext(ctx, "request created", "request_id", req.ID, "client_id", clientID)
+	slog.InfoContext(ctx, "request created", "request_id", req.ID, "client_id", in.ClientID)
 	return req, nil
 }
 

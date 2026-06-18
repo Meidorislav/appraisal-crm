@@ -7,8 +7,16 @@ import (
 	"github.com/google/uuid"
 )
 
+type CreateInput struct {
+	ClientID    uuid.UUID
+	Email       string
+	PhoneNumber string
+	ObjectType  *domain.ObjectType
+	Address     *string
+}
+
 type RequestService interface {
-	Create(ctx context.Context, clientID uuid.UUID, objectType *domain.ObjectType, address *string) (*domain.Request, error)
+	Create(ctx context.Context, in CreateInput) (*domain.Request, error)
 	GetByID(ctx context.Context, id uuid.UUID) (*domain.Request, error)
 	Update(ctx context.Context, req *domain.Request) (*domain.Request, error)
 	ChangeStatus(ctx context.Context, id uuid.UUID, newStatus domain.Status) (*domain.Request, error)

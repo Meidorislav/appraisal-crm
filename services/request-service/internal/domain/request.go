@@ -31,6 +31,8 @@ const (
 type Request struct {
 	ID          uuid.UUID   `json:"id"`
 	ClientID    uuid.UUID   `json:"client_id"`
+	Email       string      `json:"email"`
+	PhoneNumber string      `json:"phone_number"`
 	InspectorID *uuid.UUID  `json:"inspector_id,omitempty"`
 	ObjectType  *ObjectType `json:"object_type,omitempty"`
 	Address     *string     `json:"address,omitempty"`

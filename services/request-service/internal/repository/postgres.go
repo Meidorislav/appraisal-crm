@@ -21,12 +21,14 @@ func NewPostgresRepository(db *pgxpool.Pool) RequestRepository {
 
 func (r *postgresRepository) Create(ctx context.Context, req *domain.Request) error {
 	query := `
-		INSERT INTO requests (id, client_id, inspector_id, object_type, address, status, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		INSERT INTO requests (id, client_id, email, phone_number, inspector_id, object_type, address, status, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 	`
 	_, err := r.db.Exec(ctx, query,
 		req.ID,
 		req.ClientID,
+		req.Email,
+		req.PhoneNumber,
 		req.InspectorID,
 		req.ObjectType,
 		req.Address,
@@ -39,7 +41,7 @@ func (r *postgresRepository) Create(ctx context.Context, req *domain.Request) er
 
 func (r *postgresRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Request, error) {
 	query := `
-		SELECT id, client_id, inspector_id, object_type, address, status, created_at, updated_at
+		SELECT id, client_id, email, phone_number, inspector_id, object_type, address, status, created_at, updated_at
 		FROM requests
 		WHERE id = $1
 	`
@@ -49,6 +51,8 @@ func (r *postgresRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain
 	err := row.Scan(
 		&req.ID,
 		&req.ClientID,
+		&req.Email,
+		&req.PhoneNumber,
 		&req.InspectorID,
 		&req.ObjectType,
 		&req.Address,
@@ -112,7 +116,7 @@ func (r *postgresRepository) ChangeStatus(ctx context.Context, id uuid.UUID, old
 
 func (r *postgresRepository) ListByClientID(ctx context.Context, clientID uuid.UUID) ([]*domain.Request, error) {
 	query := `
-		SELECT id, client_id, inspector_id, object_type, address, status, created_at, updated_at
+		SELECT id, client_id, email, phone_number, inspector_id, object_type, address, status, created_at, updated_at
 		FROM requests
 		WHERE client_id = $1
 		ORDER BY created_at DESC
@@ -129,6 +133,8 @@ func (r *postgresRepository) ListByClientID(ctx context.Context, clientID uuid.U
 		err := rows.Scan(
 			&req.ID,
 			&req.ClientID,
+			&req.Email,
+			&req.PhoneNumber,
 			&req.InspectorID,
 			&req.ObjectType,
 			&req.Address,

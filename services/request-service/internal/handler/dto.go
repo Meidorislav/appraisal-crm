@@ -6,8 +6,10 @@ import (
 )
 
 type createRequestDTO struct {
-	ObjectType *domain.ObjectType `json:"object_type" validate:"omitempty,oneof=apartment house land commercial car"`
-	Address    *string            `json:"address"     validate:"omitempty,min=1"`
+	Email       string             `json:"email"        validate:"required,email"`
+	PhoneNumber string             `json:"phone_number" validate:"required,e164"`
+	ObjectType  *domain.ObjectType `json:"object_type"  validate:"omitempty,oneof=apartment house land commercial car"`
+	Address     *string            `json:"address"      validate:"omitempty,min=1"`
 }
 
 type updateRequestDTO struct {
