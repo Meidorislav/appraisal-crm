@@ -49,7 +49,13 @@ func (h *requestHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req, err := h.svc.Create(r.Context(), clientID, dto.ObjectType, dto.Address)
+	req, err := h.svc.Create(r.Context(), service.CreateInput{
+		ClientID:    clientID,
+		Email:       dto.Email,
+		PhoneNumber: dto.PhoneNumber,
+		ObjectType:  dto.ObjectType,
+		Address:     dto.Address,
+	})
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "failed to create request")
 		return

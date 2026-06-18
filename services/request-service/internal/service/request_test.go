@@ -49,14 +49,21 @@ func TestCreate_SetsStatusNewAndGeneratesID(t *testing.T) {
 
 	clientID := uuid.New()
 	repo.On("Create", mock.Anything, mock.MatchedBy(func(r *domain.Request) bool {
-		return r.ClientID == clientID && r.Status == domain.StatusNew && r.ID != uuid.Nil
+		return r.ClientID == clientID && r.Status == domain.StatusNew && r.ID != uuid.Nil &&
+			r.Email == "client@example.com" && r.PhoneNumber == "+71234567890"
 	})).Return(nil)
 
-	req, err := svc.Create(context.Background(), clientID, nil, nil)
+	req, err := svc.Create(context.Background(), CreateInput{
+		ClientID:    clientID,
+		Email:       "client@example.com",
+		PhoneNumber: "+71234567890",
+	})
 
 	assert.NoError(t, err)
 	assert.Equal(t, domain.StatusNew, req.Status)
 	assert.Equal(t, clientID, req.ClientID)
+	assert.Equal(t, "client@example.com", req.Email)
+	assert.Equal(t, "+71234567890", req.PhoneNumber)
 	assert.NotEqual(t, uuid.Nil, req.ID)
 	repo.AssertExpectations(t)
 }
@@ -129,7 +136,11 @@ func TestCreate_OptionalFieldsCanBeNil(t *testing.T) {
 		return r.ObjectType == nil && r.Address == nil
 	})).Return(nil)
 
-	req, err := svc.Create(context.Background(), uuid.New(), nil, nil)
+	req, err := svc.Create(context.Background(), CreateInput{
+		ClientID:    uuid.New(),
+		Email:       "client@example.com",
+		PhoneNumber: "+71234567890",
+	})
 
 	assert.NoError(t, err)
 	assert.Nil(t, req.ObjectType)
