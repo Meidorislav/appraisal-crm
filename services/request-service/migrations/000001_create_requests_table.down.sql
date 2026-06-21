@@ -1,3 +1,5 @@
-DROP TABLE IF EXISTS requests;
-DROP TABLE IF EXISTS request_statuses;
-DROP TABLE IF EXISTS object_types;
+DROP INDEX IF EXISTS idx_requests_status;
+DROP INDEX IF EXISTS idx_requests_client_id;
+DROP TABLE requests;
+DROP TABLE request_statuses;
+DROP TABLE object_types;
