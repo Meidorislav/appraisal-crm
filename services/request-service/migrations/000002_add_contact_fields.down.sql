@@ -1,2 +1,2 @@
-ALTER TABLE requests DROP COLUMN IF EXISTS phone_number;
-ALTER TABLE requests DROP COLUMN IF EXISTS email;
+ALTER TABLE requests DROP COLUMN phone_number;
+ALTER TABLE requests DROP COLUMN email;
