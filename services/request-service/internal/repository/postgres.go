@@ -69,25 +69,34 @@ func (r *postgresRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain
 	return &req, nil
 }
 
-func (r *postgresRepository) Update(ctx context.Context, req *domain.Request) error {
+// Update deliberately does not touch status — status changes go through
+// ChangeStatus only, so a stale read here can never roll the lifecycle back.
+func (r *postgresRepository) Update(ctx context.Context, req *domain.Request, prevUpdatedAt time.Time) error {
 	query := `
 		UPDATE requests
-		SET inspector_id = $1, object_type = $2, address = $3, status = $4, updated_at = $5
-		WHERE id = $6
+		SET inspector_id = $1, object_type = $2, address = $3, updated_at = $4
+		WHERE id = $5 AND updated_at = $6
 	`
 	tag, err := r.db.Exec(ctx, query,
 		req.InspectorID,
 		req.ObjectType,
 		req.Address,
-		req.Status,
 		req.UpdatedAt,
 		req.ID,
+		prevUpdatedAt,
 	)
 	if err != nil {
 		return err
 	}
 	if tag.RowsAffected() == 0 {
-		return ErrNotFound
+		var exists bool
+		if err := r.db.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM requests WHERE id = $1)", req.ID).Scan(&exists); err != nil {
+			return err
+		}
+		if !exists {
+			return ErrNotFound
+		}
+		return ErrConflict
 	}
 	return nil
 }

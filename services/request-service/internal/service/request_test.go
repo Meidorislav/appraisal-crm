@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/Meidorislav/appraisal-crm/services/request-service/internal/domain"
+	"github.com/Meidorislav/appraisal-crm/services/request-service/internal/repository"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -27,8 +28,8 @@ func (m *mockRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Req
 	return args.Get(0).(*domain.Request), args.Error(1)
 }
 
-func (m *mockRepository) Update(ctx context.Context, req *domain.Request) error {
-	return m.Called(ctx, req).Error(0)
+func (m *mockRepository) Update(ctx context.Context, req *domain.Request, prevUpdatedAt time.Time) error {
+	return m.Called(ctx, req, prevUpdatedAt).Error(0)
 }
 
 func (m *mockRepository) ChangeStatus(ctx context.Context, id uuid.UUID, oldStatus, newStatus domain.Status, updatedAt time.Time) error {
@@ -134,6 +135,67 @@ func TestChangeStatus_InvalidTransition(t *testing.T) {
 			repo.AssertExpectations(t)
 		})
 	}
+}
+
+func TestUpdate_MergesOnlyProvidedFields(t *testing.T) {
+	repo := &mockRepository{}
+	svc := NewRequestService(repo)
+
+	id := uuid.New()
+	oldAddress := "Old street 1"
+	oldType := domain.ObjectTypeApartment
+	prevUpdatedAt := time.Now().Add(-time.Hour)
+	existing := &domain.Request{
+		ID:         id,
+		Status:     domain.StatusInProgress,
+		ObjectType: &oldType,
+		Address:    &oldAddress,
+		UpdatedAt:  prevUpdatedAt,
+	}
+
+	inspectorID := uuid.New()
+	repo.On("GetByID", mock.Anything, id).Return(existing, nil)
+	repo.On("Update", mock.Anything, mock.MatchedBy(func(r *domain.Request) bool {
+		return r.InspectorID != nil && *r.InspectorID == inspectorID &&
+			r.ObjectType == &oldType && r.Address == &oldAddress &&
+			r.Status == domain.StatusInProgress
+	}), prevUpdatedAt).Return(nil)
+
+	req, err := svc.Update(context.Background(), id, UpdateInput{InspectorID: &inspectorID})
+
+	assert.NoError(t, err)
+	assert.Equal(t, &inspectorID, req.InspectorID)
+	assert.Equal(t, &oldAddress, req.Address)
+	assert.Equal(t, domain.StatusInProgress, req.Status)
+	assert.True(t, req.UpdatedAt.After(prevUpdatedAt))
+	repo.AssertExpectations(t)
+}
+
+func TestUpdate_ConflictOnConcurrentModification(t *testing.T) {
+	repo := &mockRepository{}
+	svc := NewRequestService(repo)
+
+	id := uuid.New()
+	repo.On("GetByID", mock.Anything, id).Return(&domain.Request{ID: id, Status: domain.StatusNew}, nil)
+	repo.On("Update", mock.Anything, mock.Anything, mock.Anything).Return(repository.ErrConflict)
+
+	_, err := svc.Update(context.Background(), id, UpdateInput{})
+
+	assert.ErrorIs(t, err, ErrConflict)
+	repo.AssertExpectations(t)
+}
+
+func TestUpdate_NotFound(t *testing.T) {
+	repo := &mockRepository{}
+	svc := NewRequestService(repo)
+
+	id := uuid.New()
+	repo.On("GetByID", mock.Anything, id).Return(nil, repository.ErrNotFound)
+
+	_, err := svc.Update(context.Background(), id, UpdateInput{})
+
+	assert.ErrorIs(t, err, ErrNotFound)
+	repo.AssertExpectations(t)
 }
 
 func TestCreate_OptionalFieldsCanBeNil(t *testing.T) {

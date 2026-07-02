@@ -12,11 +12,15 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
+	"time"
 
 	"github.com/MicahParks/keyfunc/v3"
 	_ "github.com/Meidorislav/appraisal-crm/services/request-service/docs"
@@ -59,10 +63,40 @@ func main() {
 	router := handler.NewRouter(svc, jwks, allowedOrigins)
 
 	addr := fmt.Sprintf(":%s", cfg.ServerPort)
-	slog.Info("starting server", "addr", addr)
+	srv := &http.Server{
+		Addr:              addr,
+		Handler:           router,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       15 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       60 * time.Second,
+	}
 
-	if err := http.ListenAndServe(addr, router); err != nil {
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	errCh := make(chan error, 1)
+	go func() {
+		slog.Info("starting server", "addr", addr)
+		errCh <- srv.ListenAndServe()
+	}()
+
+	select {
+	case err := <-errCh:
 		slog.Error("server error", "error", err)
 		os.Exit(1)
+	case <-ctx.Done():
+		slog.Info("shutdown signal received")
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := srv.Shutdown(shutdownCtx); err != nil {
+			slog.Error("graceful shutdown failed", "error", err)
+			os.Exit(1)
+		}
+		if err := <-errCh; err != nil && !errors.Is(err, http.ErrServerClosed) {
+			slog.Error("server error", "error", err)
+			os.Exit(1)
+		}
+		slog.Info("server stopped")
 	}
 }
