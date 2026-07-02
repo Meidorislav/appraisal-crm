@@ -65,16 +65,40 @@ func (s *requestService) GetByID(ctx context.Context, id uuid.UUID) (*domain.Req
 	return req, nil
 }
 
-func (s *requestService) Update(ctx context.Context, req *domain.Request) (*domain.Request, error) {
-	req.UpdatedAt = time.Now()
-	if err := s.repo.Update(ctx, req); err != nil {
+func (s *requestService) Update(ctx context.Context, id uuid.UUID, in UpdateInput) (*domain.Request, error) {
+	req, err := s.repo.GetByID(ctx, id)
+	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			return nil, ErrNotFound
 		}
-		slog.ErrorContext(ctx, "failed to update request", "error", err, "request_id", req.ID)
 		return nil, err
 	}
-	slog.InfoContext(ctx, "request updated", "request_id", req.ID)
+
+	if in.InspectorID != nil {
+		req.InspectorID = in.InspectorID
+	}
+	if in.ObjectType != nil {
+		req.ObjectType = in.ObjectType
+	}
+	if in.Address != nil {
+		req.Address = in.Address
+	}
+
+	prevUpdatedAt := req.UpdatedAt
+	req.UpdatedAt = time.Now()
+
+	if err := s.repo.Update(ctx, req, prevUpdatedAt); err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			return nil, ErrNotFound
+		}
+		if errors.Is(err, repository.ErrConflict) {
+			slog.WarnContext(ctx, "concurrent update detected", "request_id", id)
+			return nil, ErrConflict
+		}
+		slog.ErrorContext(ctx, "failed to update request", "error", err, "request_id", id)
+		return nil, err
+	}
+	slog.InfoContext(ctx, "request updated", "request_id", id)
 	return req, nil
 }
 

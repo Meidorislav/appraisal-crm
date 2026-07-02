@@ -117,6 +117,7 @@ func (h *requestHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 // @Failure     400 {object} errorResponse
 // @Failure     401 {object} errorResponse
 // @Failure     404 {object} errorResponse
+// @Failure     409 {object} errorResponse
 // @Failure     500 {object} errorResponse
 // @Router      /requests/{id} [patch]
 func (h *requestHandler) Update(w http.ResponseWriter, r *http.Request) {
@@ -137,30 +138,18 @@ func (h *requestHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req, err := h.svc.GetByID(r.Context(), id)
+	updated, err := h.svc.Update(r.Context(), id, service.UpdateInput{
+		InspectorID: dto.InspectorID,
+		ObjectType:  dto.ObjectType,
+		Address:     dto.Address,
+	})
 	if err != nil {
 		if errors.Is(err, service.ErrNotFound) {
 			respondError(w, http.StatusNotFound, "request not found")
 			return
 		}
-		respondError(w, http.StatusInternalServerError, "failed to get request")
-		return
-	}
-
-	if dto.InspectorID != nil {
-		req.InspectorID = dto.InspectorID
-	}
-	if dto.ObjectType != nil {
-		req.ObjectType = dto.ObjectType
-	}
-	if dto.Address != nil {
-		req.Address = dto.Address
-	}
-
-	updated, err := h.svc.Update(r.Context(), req)
-	if err != nil {
-		if errors.Is(err, service.ErrNotFound) {
-			respondError(w, http.StatusNotFound, "request not found")
+		if errors.Is(err, service.ErrConflict) {
+			respondError(w, http.StatusConflict, "request was modified concurrently, please retry")
 			return
 		}
 		respondError(w, http.StatusInternalServerError, "failed to update request")
